@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { redis } from "../../../lib/redis";
-import { HouseholdState, Recipe } from "../../../lib/types";
+import { redis } from "../../../../lib/redis";
+import { HouseholdState, Recipe } from "../../../../lib/types";
 
 // The OpenClaw agent will POST a JSON payload here:
 // { syncCode: "PINOY-...", recipe: { id: "...", name: "...", ingredients: [...], category: "..." } }
