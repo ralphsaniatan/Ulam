@@ -21,10 +21,13 @@ const nameMapping: Record<string, string> = {
   "local ginger": "ginger",
   "spinach leaves": "spinach",
   "beaten eggs": "eggs",
+  "onion": "onions",
+  "mayo": "mayonnaise",
 };
 
 function normalizeName(name: string): string {
-  const lower = name.toLowerCase().trim();
+  let lower = name.toLowerCase().trim();
+  lower = lower.replace(/^frozen\s+/i, '');
   return nameMapping[lower] || lower;
 }
 

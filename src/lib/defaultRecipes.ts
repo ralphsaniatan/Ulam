@@ -56,7 +56,7 @@ export const defaultRecipes: Recipe[] = [
       { id: "ginisang-sayote-1", item: "Lean Minced Beef", quantity: "500g", aisle: "Meat & Frozen" },
       { id: "ginisang-sayote-2", item: "Sayote", quantity: "3 pcs", aisle: "Fresh Produce" },
       { id: "ginisang-sayote-3", item: "Onions", quantity: "1 pc", aisle: "Fresh Produce" },
-      { id: "ginisang-sayote-4", item: "Garlic", quantity: "4 cloves", aisle: "Fresh Produce" },
+      { id: "ginisang-sayote-4", item: "Garlic", quantity: "1 head", aisle: "Fresh Produce" },
     ],
     pivots: {
       toddler: "Mashed Sayote",
@@ -100,7 +100,7 @@ export const defaultRecipes: Recipe[] = [
     ingredients: [
       { id: "burger-steak-1", item: "Minced Beef", quantity: "500g", aisle: "Meat & Frozen" },
       { id: "burger-steak-2", item: "Cream of Mushroom Can", quantity: "1 can", aisle: "Pantry Staples & Asian Aisle" },
-      { id: "burger-steak-3", item: "Garlic", quantity: "4 cloves", aisle: "Fresh Produce" },
+      { id: "burger-steak-3", item: "Garlic", quantity: "1 head", aisle: "Fresh Produce" },
     ],
     pivots: {
       toddler: "Mini Patty (No Gravy)",
@@ -173,7 +173,7 @@ export const defaultRecipes: Recipe[] = [
     ingredients: [
       { id: "ginisang-ampalaya-1", item: "Bitter Melon", quantity: "2 pcs", aisle: "Fresh Produce" },
       { id: "ginisang-ampalaya-2", item: "Beaten Eggs", quantity: "2 pcs", aisle: "Pantry Staples & Asian Aisle" },
-      { id: "ginisang-ampalaya-3", item: "Garlic", quantity: "3 cloves", aisle: "Fresh Produce" },
+      { id: "ginisang-ampalaya-3", item: "Garlic", quantity: "1 head", aisle: "Fresh Produce" },
       { id: "ginisang-ampalaya-4", item: "Onions", quantity: "1 pc", aisle: "Fresh Produce" },
     ],
     pivots: {
