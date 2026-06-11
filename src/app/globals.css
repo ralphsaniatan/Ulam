@@ -1,26 +1,85 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
+@theme {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-primary: #f97316; /* Orange 500 for a food-app feel */
+  --color-primary-foreground: #ffffff;
+  
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, monospace;
+}
+
+:root {
+  --background: #f8fafc; /* slate-50 */
+  --foreground: #0f172a; /* slate-900 */
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: #0f172a; /* slate-900 */
+    --foreground: #f8fafc; /* slate-50 */
   }
 }
 
 body {
-  background: var(--background);
+  background-color: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+
+/* Hide scrollbar for clean UI on mobile */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+/* --- Print Styles from PRD --- */
+@media print {
+  /* Enforce black ink base text, drop heavy visual asset processing blocks */
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+    font-family: system-ui, sans-serif;
+    font-size: 11pt;
+    padding: 0;
+    margin: 0;
+  }
+
+  /* Completely strip navigation elements, interaction triggers, input modules */
+  nav, 
+  button, 
+  input, 
+  form,
+  .no-print, 
+  [role="combobox"], 
+  .alert-toast {
+    display: none !important;
+  }
+
+  /* Unfold structural scheduling layouts into clean, complete stacked tables */
+  .matrix-container {
+    display: block !important;
+    width: 100% !important;
+  }
+
+  .day-card-row {
+    page-break-inside: avoid !important;
+    border-bottom: 2px solid #000000 !important;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+  }
+
+  /* Force display of unchecked lines while dropping background checkboxes indicators */
+  .grocery-item-line {
+    display: list-item !important;
+    list-style-type: square !important;
+    margin-left: 20px !important;
+  }
 }
