@@ -48,26 +48,37 @@ export function generateSmartSchedule(): HouseholdState["currentSchedule"] {
 
   let lastDinnerType = "";
   let lastBaonType = "";
-  let lastSnackId = "";
+
+  const usedDinnerIds = new Set<string>();
+  const usedBaonIds = new Set<string>();
+  const usedSnackIds = new Set<string>();
 
   for (const day of days) {
     // Pick dinner
-    let dinnerCandidates = dinners.filter((d) => getRecipeType(d) !== lastDinnerType);
-    if (dinnerCandidates.length === 0) dinnerCandidates = dinners; // Fallback
+    let dinnerCandidates = dinners.filter((d) => getRecipeType(d) !== lastDinnerType && !usedDinnerIds.has(d.id));
+    if (dinnerCandidates.length === 0) {
+      dinnerCandidates = dinners.filter((d) => !usedDinnerIds.has(d.id)); // fallback: drop protein constraint
+      if (dinnerCandidates.length === 0) dinnerCandidates = dinners; // extreme fallback: allow repeat
+    }
     const dinner = dinnerCandidates[Math.floor(Math.random() * dinnerCandidates.length)];
     lastDinnerType = getRecipeType(dinner);
+    usedDinnerIds.add(dinner.id);
 
     // Pick baon
-    let baonCandidates = baons.filter((b) => getRecipeType(b) !== lastBaonType);
-    if (baonCandidates.length === 0) baonCandidates = baons;
+    let baonCandidates = baons.filter((b) => getRecipeType(b) !== lastBaonType && !usedBaonIds.has(b.id));
+    if (baonCandidates.length === 0) {
+      baonCandidates = baons.filter((b) => !usedBaonIds.has(b.id));
+      if (baonCandidates.length === 0) baonCandidates = baons;
+    }
     const baon = baonCandidates[Math.floor(Math.random() * baonCandidates.length)];
     lastBaonType = getRecipeType(baon);
+    usedBaonIds.add(baon.id);
 
     // Pick snack
-    let snackCandidates = snacks.filter((s) => s.id !== lastSnackId);
+    let snackCandidates = snacks.filter((s) => !usedSnackIds.has(s.id));
     if (snackCandidates.length === 0) snackCandidates = snacks;
     const snack = snackCandidates[Math.floor(Math.random() * snackCandidates.length)];
-    lastSnackId = snack.id;
+    usedSnackIds.add(snack.id);
 
     schedule[day] = {
       dinnerId: dinner.id,
