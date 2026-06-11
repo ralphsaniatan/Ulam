@@ -128,3 +128,31 @@ export function updateHouseholdState(syncCode: string, state: HouseholdState): v
   state.updatedAt = Date.now();
   localStorage.setItem(key, JSON.stringify(state));
 }
+
+export async function fetchHouseholdState(syncCode: string): Promise<HouseholdState | null> {
+  if (typeof window === "undefined") return null;
+  try {
+    const res = await fetch(`/api/sync?code=${syncCode}`);
+    if (res.ok) {
+      return await res.json() as HouseholdState;
+    }
+  } catch (e) {
+    console.error("Failed to fetch state from server", e);
+  }
+  return null;
+}
+
+export async function pushHouseholdState(syncCode: string, state: HouseholdState): Promise<void> {
+  if (typeof window === "undefined") return;
+  updateHouseholdState(syncCode, state); // optimistic local update
+  try {
+    await fetch('/api/sync', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(state)
+    });
+  } catch (e) {
+    console.error("Failed to push state to server", e);
+  }
+}
+

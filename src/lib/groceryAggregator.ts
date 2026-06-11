@@ -23,6 +23,7 @@ const nameMapping: Record<string, string> = {
   "beaten eggs": "eggs",
   "onion": "onions",
   "mayo": "mayonnaise",
+  "shredded carrots": "carrots",
 };
 
 function normalizeName(name: string): string {

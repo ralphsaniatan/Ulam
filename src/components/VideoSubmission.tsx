@@ -38,7 +38,13 @@ export function VideoSubmission() {
 
       {/* Chat Bot Window */}
       {isOpen && (
-        <div className="fixed bottom-24 right-6 left-6 sm:left-auto sm:w-[350px] z-50 bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden animate-in slide-in-from-bottom-8 fade-in duration-200 no-print">
+        <>
+          <div 
+            className="fixed inset-0 z-40 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200 no-print" 
+            onClick={() => setIsOpen(false)}
+          ></div>
+          
+          <div className="fixed bottom-24 right-6 left-6 sm:left-auto sm:w-[350px] z-50 bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden animate-in slide-in-from-bottom-8 fade-in duration-200 no-print">
           
           <div className="bg-gradient-to-r from-orange-500 to-rose-500 p-4 text-white relative">
             <div className="absolute top-0 right-0 -mr-8 -mt-8 w-32 h-32 rounded-full bg-white/10 blur-2xl"></div>
@@ -88,6 +94,7 @@ export function VideoSubmission() {
             )}
           </div>
         </div>
+        </>
       )}
     </>
   );

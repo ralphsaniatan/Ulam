@@ -7,6 +7,8 @@ import {
   setSyncCode as saveSyncCode, 
   getHouseholdState, 
   updateHouseholdState,
+  fetchHouseholdState,
+  pushHouseholdState,
   generateSmartSchedule 
 } from "../lib/store";
 import { MealMatrix } from "./MealMatrix";
@@ -28,6 +30,26 @@ export function UlamApp() {
     setIsLoaded(true);
   }, []);
 
+  // Poll server for live updates
+  useEffect(() => {
+    if (!syncCode) return;
+    const fetchState = async () => {
+      const serverState = await fetchHouseholdState(syncCode);
+      if (serverState) {
+        setState((current) => {
+          if (!current || serverState.updatedAt > current.updatedAt) {
+            updateHouseholdState(syncCode, serverState);
+            return serverState;
+          }
+          return current;
+        });
+      }
+    };
+    fetchState();
+    const interval = setInterval(fetchState, 5000); // Check every 5 seconds
+    return () => clearInterval(interval);
+  }, [syncCode]);
+
   const handleUpdateSyncCode = (newCode: string) => {
     saveSyncCode(newCode);
     setSyncCode(newCode);
@@ -40,7 +62,7 @@ export function UlamApp() {
     const newSchedule = generateSmartSchedule();
     const newState = { ...state, currentSchedule: newSchedule };
     setState(newState);
-    updateHouseholdState(syncCode, newState);
+    pushHouseholdState(syncCode, newState);
   };
 
   const handleShuffleDay = (day: string) => {
@@ -56,7 +78,7 @@ export function UlamApp() {
       }
     };
     setState(newState);
-    updateHouseholdState(syncCode, newState);
+    pushHouseholdState(syncCode, newState);
   };
 
   const handleToggleGrocery = (id: string) => {
@@ -70,7 +92,7 @@ export function UlamApp() {
     }
     const newState = { ...state, completedGroceries: completed };
     setState(newState);
-    updateHouseholdState(syncCode, newState);
+    pushHouseholdState(syncCode, newState);
   };
 
   if (!isLoaded || !state) {

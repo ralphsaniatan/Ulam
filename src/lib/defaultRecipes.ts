@@ -295,7 +295,7 @@ export const defaultRecipes: Recipe[] = [
     ingredients: [
       { id: "cheese-pimiento-1", item: "Fresh Bakery Pandesal", quantity: "1 bag", aisle: "Pantry Staples & Asian Aisle" },
       { id: "cheese-pimiento-2", item: "Eden Cheese", quantity: "1 block", aisle: "Pantry Staples & Asian Aisle" },
-      { id: "cheese-pimiento-3", item: "Mayo", quantity: "1/2 cup", aisle: "Pantry Staples & Asian Aisle" },
+      { id: "cheese-pimiento-3", item: "Mayonnaise", quantity: "8 tbsp", aisle: "Pantry Staples & Asian Aisle" },
     ],
     pivots: { toddler: "Plain Pandesal with Cheese", baon: "Pandesal Pimiento" }
   },
