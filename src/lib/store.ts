@@ -1,7 +1,7 @@
 import { AppStateData, PantryIngredientItem, CustomRecipeItem } from "./types";
 import { defaultPantryItems, defaultRecipes } from "./defaultRecipes";
 
-const LOCAL_STORAGE_KEY_PREFIX = "ulam_state_v2_"; // Namespace for v2
+const LOCAL_STORAGE_KEY_PREFIX = "ulam_state_v2_";
 
 export function getSyncCode(): string {
   if (typeof window === "undefined") return "";
@@ -28,14 +28,36 @@ export function generateSyncCode(): string {
   return result;
 }
 
-// Score a recipe based on pantry ingredients status: PLENTY = 2, LOW = 1, OUT/not found = 0
+// Automatically resolve PLENTY / LOW / OUT from trackingMode and stockCount
+export function resolvePantryItemStatus(item: PantryIngredientItem): "PLENTY" | "LOW" | "OUT" {
+  const mode = item.trackingMode || "status";
+  if (mode === "status") {
+    return item.status;
+  }
+  
+  const count = item.stockCount ?? 0;
+  if (mode === "meal") {
+    // Meal portions: 0 = OUT, 1 = LOW, 2+ = PLENTY
+    if (count <= 0) return "OUT";
+    if (count === 1) return "LOW";
+    return "PLENTY";
+  } else {
+    // Piece count: 0 = OUT, 1-2 = LOW, 3+ = PLENTY
+    if (count <= 0) return "OUT";
+    if (count <= 2) return "LOW";
+    return "PLENTY";
+  }
+}
+
+// Score a recipe based on pantry ingredients status: PLENTY = 2, LOW = 1, OUT = 0
 export function scoreRecipe(recipe: CustomRecipeItem, pantryItems: PantryIngredientItem[]): number {
   let score = 0;
   for (const ingId of recipe.associatedIngredientIds) {
     const item = pantryItems.find((p) => p.id === ingId);
     if (item) {
-      if (item.status === "PLENTY") score += 2;
-      else if (item.status === "LOW") score += 1;
+      const status = resolvePantryItemStatus(item);
+      if (status === "PLENTY") score += 2;
+      else if (status === "LOW") score += 1;
     }
   }
   return score;
@@ -51,28 +73,23 @@ export function generateWeeklySchedule(
   const usedRecipeIds = new Set<string>();
 
   for (const day of days) {
-    // Filter candidates not used yet
     let candidates = recipesPool.filter((r) => !usedRecipeIds.has(r.id));
     if (candidates.length === 0) {
-      candidates = recipesPool; // Fallback: allow repeats if recipes pool is small
+      candidates = recipesPool;
     }
 
     if (candidates.length === 0) {
-      // Hard fallback if pool is completely empty
       schedule[day] = { recipeId: "", title: "No Recipes Available" };
       continue;
     }
 
-    // Score candidates
     const scoredCandidates = candidates.map((recipe) => ({
       recipe,
       score: scoreRecipe(recipe, pantryItems),
     }));
 
-    // Sort by score descending
     scoredCandidates.sort((a, b) => b.score - a.score);
 
-    // Pick from the top-scoring options to avoid repeating same menus every refresh
     const topCount = Math.min(3, scoredCandidates.length);
     const pickIndex = Math.floor(Math.random() * topCount);
     const chosen = scoredCandidates[pickIndex].recipe;
@@ -99,18 +116,16 @@ export function swapSingleDayMeal(
       .map(([_, meal]) => meal.recipeId)
   );
 
-  // Candidates exclude recipes scheduled elsewhere
   let candidates = state.recipesPool.filter((r) => !otherDaysRecipeIds.has(r.id));
   
   if (candidates.length === 0) {
-    candidates = state.recipesPool; // Fallback: check whole pool
+    candidates = state.recipesPool;
   }
 
   if (candidates.length === 0) {
     return state;
   }
 
-  // Score and sort candidates
   const scoredCandidates = candidates.map((recipe) => ({
     recipe,
     score: scoreRecipe(recipe, state.pantryItems),
@@ -118,7 +133,6 @@ export function swapSingleDayMeal(
 
   scoredCandidates.sort((a, b) => b.score - a.score);
 
-  // Pick from the top 2 scored recipes (if available) to keep some variety, or first
   const topCount = Math.min(2, scoredCandidates.length);
   const pickIndex = Math.floor(Math.random() * topCount);
   const chosen = scoredCandidates[pickIndex].recipe;
@@ -139,12 +153,36 @@ export function swapSingleDayMeal(
   };
 }
 
+// Helper to normalize/hydrate state properties for backwards compatibility
+export function sanitizeState(raw: any): AppStateData {
+  const sanitized = { ...raw };
+  
+  if (sanitized.pantryItems) {
+    sanitized.pantryItems = sanitized.pantryItems.map((p: any) => {
+      const mode = p.trackingMode || "status";
+      const count = p.stockCount ?? (p.status === "PLENTY" ? 3 : p.status === "LOW" ? 1 : 0);
+      
+      const hydrated = {
+        ...p,
+        trackingMode: mode,
+        stockCount: count,
+      };
+      
+      // Auto-resolve status flag
+      hydrated.status = resolvePantryItemStatus(hydrated);
+      return hydrated;
+    });
+  }
+
+  return sanitized as AppStateData;
+}
+
 export function getHouseholdState(syncCode: string): AppStateData {
   if (typeof window === "undefined") {
     return {
       syncCode,
       updatedAt: Date.now(),
-      pantryItems: defaultPantryItems,
+      pantryItems: defaultPantryItems.map(p => ({ ...p, trackingMode: "status", stockCount: p.status === "PLENTY" ? 3 : 0 })),
       recipesPool: defaultRecipes,
       weeklySchedule: {},
     };
@@ -155,23 +193,27 @@ export function getHouseholdState(syncCode: string): AppStateData {
 
   if (stored) {
     try {
-      const parsed = JSON.parse(stored) as AppStateData;
-      // Ensure essential fields exist
+      const parsed = JSON.parse(stored);
       if (parsed.pantryItems && parsed.recipesPool && parsed.weeklySchedule) {
-        return parsed;
+        return sanitizeState(parsed);
       }
     } catch (e) {
       console.error("Corrupted local state. Resetting to defaults.", e);
     }
   }
 
-  // Initialize new state if not found or malformed
+  const populatedPantry = defaultPantryItems.map(p => ({
+    ...p,
+    trackingMode: "status" as const,
+    stockCount: p.status === "PLENTY" ? 3 : 0
+  }));
+
   const newState: AppStateData = {
     syncCode,
     updatedAt: Date.now(),
-    pantryItems: defaultPantryItems,
+    pantryItems: populatedPantry,
     recipesPool: defaultRecipes,
-    weeklySchedule: generateWeeklySchedule(defaultPantryItems, defaultRecipes),
+    weeklySchedule: generateWeeklySchedule(populatedPantry, defaultRecipes),
   };
 
   localStorage.setItem(key, JSON.stringify(newState));
@@ -190,7 +232,8 @@ export async function fetchHouseholdState(syncCode: string): Promise<AppStateDat
   try {
     const res = await fetch(`/api/sync?code=${syncCode}`);
     if (res.ok) {
-      return (await res.json()) as AppStateData;
+      const data = await res.json();
+      return sanitizeState(data);
     }
   } catch (e) {
     console.error("Failed to fetch state from server", e);
@@ -200,7 +243,7 @@ export async function fetchHouseholdState(syncCode: string): Promise<AppStateDat
 
 export async function pushHouseholdState(syncCode: string, state: AppStateData): Promise<void> {
   if (typeof window === "undefined") return;
-  updateHouseholdState(syncCode, state); // optimistic local update
+  updateHouseholdState(syncCode, state);
   try {
     await fetch("/api/sync", {
       method: "POST",

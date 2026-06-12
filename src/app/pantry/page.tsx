@@ -5,10 +5,11 @@ import {
   getSyncCode, 
   getHouseholdState, 
   pushHouseholdState, 
-  fetchHouseholdState 
+  fetchHouseholdState,
+  resolvePantryItemStatus 
 } from "@/lib/store";
 import { AppStateData, PantryIngredientItem } from "@/lib/types";
-import { Plus, Apple, Sparkles, Trash2, Check, AlertCircle } from "lucide-react";
+import { Plus, Apple, Sparkles, Trash2, Check, AlertCircle, Minus } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export default function PantryPage() {
@@ -19,6 +20,7 @@ export default function PantryPage() {
   // Form state
   const [nameInput, setNameInput] = useState("");
   const [categoryInput, setCategoryInput] = useState<"Proteins" | "Produce" | "Pantry Staples">("Proteins");
+  const [trackingModeInput, setTrackingModeInput] = useState<"status" | "meal" | "piece">("status");
   const [formFeedback, setFormFeedback] = useState({ text: "", type: "" });
 
   // 1. Initial Load
@@ -30,7 +32,7 @@ export default function PantryPage() {
     setIsLoaded(true);
   }, []);
 
-  // 2. State Polling from Redis
+  // 2. State Polling
   useEffect(() => {
     if (!syncCode) return;
 
@@ -62,7 +64,6 @@ export default function PantryPage() {
     );
   }
 
-  // Helper to slugify
   const slugify = (text: string) => {
     return text
       .toString()
@@ -73,7 +74,7 @@ export default function PantryPage() {
       .replace(/\-\-+/g, "-");
   };
 
-  // 3. Action Handler: Add custom ingredient
+  // 3. Action: Add custom ingredient
   const handleAddIngredient = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormFeedback({ text: "", type: "" });
@@ -97,8 +98,13 @@ export default function PantryPage() {
       id,
       name: name.charAt(0).toUpperCase() + name.slice(1),
       category: categoryInput,
-      status: "OUT", // Default initialized to OUT
+      trackingMode: trackingModeInput,
+      stockCount: 0, // defaults to 0
+      status: "OUT", // will be auto-resolved
     };
+
+    // Auto resolve status
+    newItem.status = resolvePantryItemStatus(newItem);
 
     const newState = {
       ...state,
@@ -110,15 +116,20 @@ export default function PantryPage() {
     await pushHouseholdState(syncCode, newState);
 
     setNameInput("");
-    setFormFeedback({ text: `Added "${newItem.name}" to pantry inventory.`, type: "success" });
+    setFormFeedback({ text: `Added "${newItem.name}" with ${trackingModeInput === "status" ? "Status-Only" : trackingModeInput === "meal" ? "Meal portions" : "Piece count"} tracking.`, type: "success" });
     setTimeout(() => setFormFeedback({ text: "", type: "" }), 2500);
   };
 
-  // 4. Action Handler: Update item status
+  // 4. Action: Update status directly (for Status-Only mode)
   const handleUpdateStatus = async (itemId: string, status: "PLENTY" | "LOW" | "OUT") => {
     const updatedItems = state.pantryItems.map((p) => {
       if (p.id === itemId) {
-        return { ...p, status };
+        return { 
+          ...p, 
+          status,
+          // Sync stockCount roughly for fallback
+          stockCount: status === "PLENTY" ? 3 : status === "LOW" ? 1 : 0
+        };
       }
       return p;
     });
@@ -133,8 +144,39 @@ export default function PantryPage() {
     await pushHouseholdState(syncCode, newState);
   };
 
-  // 5. Action Handler: Remove custom ingredient
+  // 5. Action: Update stock count (for Meal and Piece modes)
+  const handleUpdateCount = async (itemId: string, increment: boolean) => {
+    const updatedItems = state.pantryItems.map((p) => {
+      if (p.id === itemId) {
+        const currentCount = p.stockCount ?? 0;
+        let newCount = increment ? currentCount + 1 : currentCount - 1;
+        if (newCount < 0) newCount = 0; // cannot be negative
+
+        const updatedItem = {
+          ...p,
+          stockCount: newCount
+        };
+        // Auto resolve status from new count
+        updatedItem.status = resolvePantryItemStatus(updatedItem);
+        return updatedItem;
+      }
+      return p;
+    });
+
+    const newState = {
+      ...state,
+      pantryItems: updatedItems,
+      updatedAt: Date.now(),
+    };
+
+    setState(newState);
+    await pushHouseholdState(syncCode, newState);
+  };
+
+  // 6. Action: Remove ingredient
   const handleRemoveIngredient = async (itemId: string) => {
+    if (!confirm("Remove this ingredient from your pantry database?")) return;
+    
     const updatedItems = state.pantryItems.filter((p) => p.id !== itemId);
     const newState = {
       ...state,
@@ -145,7 +187,6 @@ export default function PantryPage() {
     await pushHouseholdState(syncCode, newState);
   };
 
-  // 6. Group items by category and sort alphabetically
   const getCategorizedItems = (cat: "Proteins" | "Produce" | "Pantry Staples") => {
     return state.pantryItems
       .filter((item) => item.category === cat)
@@ -179,37 +220,58 @@ export default function PantryPage() {
         </div>
 
         <form onSubmit={handleAddIngredient} className="space-y-3">
-          <div className="flex flex-col gap-1">
-            <input
-              type="text"
-              value={nameInput}
-              onChange={(e) => setNameInput(e.target.value)}
-              placeholder="e.g. Sayote, Calamansi, Pork Ribs..."
-              className="w-full px-3.5 py-3 border border-slate-200 dark:border-slate-800 rounded-2xl bg-white dark:bg-slate-900 text-xs font-semibold text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:border-orange-500"
-            />
+          {/* Ingredient name */}
+          <input
+            type="text"
+            required
+            value={nameInput}
+            onChange={(e) => setNameInput(e.target.value)}
+            placeholder="e.g. Sayote, Calamansi, Pork Ribs..."
+            className="w-full px-3.5 py-3 border border-slate-200 dark:border-slate-800 rounded-2xl bg-white dark:bg-slate-900 text-xs font-semibold text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:border-orange-500"
+          />
+
+          <div className="grid grid-cols-2 gap-2">
+            {/* Category Dropdown */}
+            <div className="space-y-1">
+              <label className="text-[9px] font-bold text-slate-450 uppercase tracking-wider px-1">
+                Category
+              </label>
+              <select
+                value={categoryInput}
+                onChange={(e) => setCategoryInput(e.target.value as any)}
+                className="w-full px-3 py-2.5 border border-slate-200 dark:border-slate-800 rounded-2xl bg-white dark:bg-slate-900 text-xs font-bold text-slate-600 dark:text-slate-400 focus:outline-none cursor-pointer"
+              >
+                <option value="Proteins">Proteins</option>
+                <option value="Produce">Produce</option>
+                <option value="Pantry Staples">Pantry Staples</option>
+              </select>
+            </div>
+
+            {/* Tracking Mode Dropdown */}
+            <div className="space-y-1">
+              <label className="text-[9px] font-bold text-slate-450 uppercase tracking-wider px-1">
+                Quantity Mode
+              </label>
+              <select
+                value={trackingModeInput}
+                onChange={(e) => setTrackingModeInput(e.target.value as any)}
+                className="w-full px-3 py-2.5 border border-slate-200 dark:border-slate-800 rounded-2xl bg-white dark:bg-slate-900 text-xs font-bold text-slate-600 dark:text-slate-400 focus:outline-none cursor-pointer"
+              >
+                <option value="status">Status-Only</option>
+                <option value="meal">Meal Portions</option>
+                <option value="piece">Piece Count</option>
+              </select>
+            </div>
           </div>
 
-          <div className="flex gap-2">
-            <select
-              value={categoryInput}
-              onChange={(e) => setCategoryInput(e.target.value as any)}
-              className="flex-1 px-3.5 py-3 border border-slate-200 dark:border-slate-800 rounded-2xl bg-white dark:bg-slate-900 text-xs font-bold text-slate-600 dark:text-slate-400 focus:outline-none cursor-pointer"
-            >
-              <option value="Proteins">Proteins</option>
-              <option value="Produce">Produce</option>
-              <option value="Pantry Staples">Pantry Staples</option>
-            </select>
-
-            <button
-              type="submit"
-              className="px-5 py-3 rounded-2xl bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-md shadow-orange-500/10 active:scale-95 transition-all cursor-pointer"
-            >
-              Add
-            </button>
-          </div>
+          <button
+            type="submit"
+            className="w-full mt-2 py-3 rounded-2xl bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-md shadow-orange-500/10 active:scale-95 transition-all cursor-pointer"
+          >
+            Add Ingredient
+          </button>
         </form>
 
-        {/* Feedback alerts */}
         {formFeedback.text && (
           <div className={`p-2.5 rounded-xl text-[10px] font-bold flex items-center gap-1.5 ${
             formFeedback.type === "error"
@@ -239,56 +301,156 @@ export default function PantryPage() {
               
               <div className="space-y-2">
                 {cat.items.map((item) => {
+                  const mode = item.trackingMode || "status";
+                  const count = item.stockCount ?? 0;
+                  const resolvedStatus = resolvePantryItemStatus(item);
+
                   return (
                     <div
                       key={item.id}
                       className="p-3.5 rounded-2xl border border-slate-200/40 dark:border-slate-850 bg-white dark:bg-slate-900/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm"
                     >
                       <div className="flex items-center justify-between w-full sm:w-auto">
-                        <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
-                          {item.name}
-                        </span>
+                        <div className="space-y-0.5 text-left">
+                          <span className="text-xs font-bold text-slate-800 dark:text-slate-250 block">
+                            {item.name}
+                          </span>
+                          <span className="text-[9px] text-slate-400 dark:text-slate-500 font-semibold uppercase tracking-wider block">
+                            {mode === "status" ? "Status only" : mode === "meal" ? "Meal volumes" : "Piece counts"}
+                          </span>
+                        </div>
                         
                         {/* Mobile Delete Button */}
                         <button
                           onClick={() => handleRemoveIngredient(item.id)}
-                          className="sm:hidden p-1 text-slate-400 hover:text-red-500 active:scale-90 transition-all"
+                          className="sm:hidden p-1 text-slate-400 hover:text-red-500 active:scale-90 transition-all cursor-pointer"
                           title="Delete ingredient"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
                       </div>
 
-                      {/* 3-Way Status Toggle */}
-                      <div className="flex items-center gap-2">
-                        <div className="flex rounded-xl bg-slate-50 dark:bg-slate-950 p-1 border border-slate-200/50 dark:border-slate-850">
-                          {(["PLENTY", "LOW", "OUT"] as const).map((statusOption) => {
-                            const isSelected = item.status === statusOption;
-                            return (
+                      <div className="flex items-center gap-3 justify-end w-full sm:w-auto">
+                        
+                        {/* 1. Status-Only mode (Standard 3-way toggle) */}
+                        {mode === "status" && (
+                          <div className="flex rounded-xl bg-slate-50 dark:bg-slate-950 p-1 border border-slate-200/50 dark:border-slate-850">
+                            {(["PLENTY", "LOW", "OUT"] as const).map((statusOption) => {
+                              const isSelected = resolvedStatus === statusOption;
+                              return (
+                                <button
+                                  key={statusOption}
+                                  onClick={() => handleUpdateStatus(item.id, statusOption)}
+                                  className={cn(
+                                    "px-2.5 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all duration-200 cursor-pointer",
+                                    isSelected
+                                      ? statusOption === "PLENTY"
+                                        ? "bg-emerald-500 text-white shadow-sm"
+                                        : statusOption === "LOW"
+                                        ? "bg-amber-500 text-white shadow-sm"
+                                        : "bg-red-500 text-white shadow-sm"
+                                      : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-350"
+                                  )}
+                                >
+                                  {statusOption}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
+
+                        {/* 2. Meal Portions mode (Meals left counter) */}
+                        {mode === "meal" && (
+                          <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-250/50 dark:border-slate-850">
                               <button
-                                key={statusOption}
-                                onClick={() => handleUpdateStatus(item.id, statusOption)}
-                                className={cn(
-                                  "px-2.5 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all duration-200 cursor-pointer",
-                                  isSelected
-                                    ? statusOption === "PLENTY"
-                                      ? "bg-emerald-500 text-white shadow-sm"
-                                      : statusOption === "LOW"
-                                      ? "bg-amber-500 text-white shadow-sm"
-                                      : "bg-red-500 text-white shadow-sm"
-                                    : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
-                                )}
+                                type="button"
+                                onClick={() => handleUpdateCount(item.id, false)}
+                                className="p-1 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-850 text-slate-500 active:scale-90 transition-all cursor-pointer"
+                                disabled={count === 0}
                               >
-                                {statusOption}
+                                <Minus className="w-3.5 h-3.5" />
                               </button>
-                            );
-                          })}
-                        </div>
+                              
+                              <span className="text-xs font-extrabold text-slate-700 dark:text-slate-250 min-w-[54px] text-center">
+                                {count === 0 
+                                  ? "0 meals" 
+                                  : count === 1 
+                                  ? "1 meal" 
+                                  : `${count} meals`}
+                              </span>
+
+                              <button
+                                type="button"
+                                onClick={() => handleUpdateCount(item.id, true)}
+                                className="p-1 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-850 text-slate-500 active:scale-90 transition-all cursor-pointer"
+                              >
+                                <Plus className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                            
+                            {/* Auto Resolved Status Indicator Badge */}
+                            <span className={cn(
+                              "px-2 py-1 rounded-lg text-[8px] font-black uppercase tracking-wider",
+                              resolvedStatus === "PLENTY" 
+                                ? "bg-emerald-500/10 text-emerald-500" 
+                                : resolvedStatus === "LOW" 
+                                ? "bg-amber-500/10 text-amber-500" 
+                                : "bg-red-500/10 text-red-500"
+                            )}>
+                              {resolvedStatus}
+                            </span>
+                          </div>
+                        )}
+
+                        {/* 3. Piece Count mode (Pieces left counter) */}
+                        {mode === "piece" && (
+                          <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-250/50 dark:border-slate-850">
+                              <button
+                                type="button"
+                                onClick={() => handleUpdateCount(item.id, false)}
+                                className="p-1 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-850 text-slate-500 active:scale-90 transition-all cursor-pointer"
+                                disabled={count === 0}
+                              >
+                                <Minus className="w-3.5 h-3.5" />
+                              </button>
+                              
+                              <span className="text-xs font-extrabold text-slate-700 dark:text-slate-250 min-w-[54px] text-center">
+                                {count === 0 
+                                  ? "0 pcs" 
+                                  : count === 1 
+                                  ? "1 pc" 
+                                  : `${count} pcs`}
+                              </span>
+
+                              <button
+                                type="button"
+                                onClick={() => handleUpdateCount(item.id, true)}
+                                className="p-1 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-850 text-slate-500 active:scale-90 transition-all cursor-pointer"
+                              >
+                                <Plus className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+
+                            {/* Auto Resolved Status Indicator Badge */}
+                            <span className={cn(
+                              "px-2 py-1 rounded-lg text-[8px] font-black uppercase tracking-wider",
+                              resolvedStatus === "PLENTY" 
+                                ? "bg-emerald-500/10 text-emerald-500" 
+                                : resolvedStatus === "LOW" 
+                                ? "bg-amber-500/10 text-amber-500" 
+                                : "bg-red-500/10 text-red-500"
+                            )}>
+                              {resolvedStatus}
+                            </span>
+                          </div>
+                        )}
 
                         {/* Desktop Delete Button */}
                         <button
                           onClick={() => handleRemoveIngredient(item.id)}
-                          className="hidden sm:block p-1.5 rounded-xl border border-transparent hover:border-slate-200 dark:hover:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 text-slate-400 hover:text-red-500 active:scale-95 transition-all cursor-pointer"
+                          className="hidden sm:block p-1.5 rounded-xl border border-transparent hover:border-slate-250 dark:hover:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 text-slate-400 hover:text-red-500 active:scale-95 transition-all cursor-pointer"
                           title="Delete ingredient"
                         >
                           <Trash2 className="w-3.5 h-3.5" />

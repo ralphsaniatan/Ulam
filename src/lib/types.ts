@@ -3,6 +3,8 @@ export interface PantryIngredientItem {
   name: string;
   category: "Proteins" | "Produce" | "Pantry Staples";
   status: "PLENTY" | "LOW" | "OUT";
+  trackingMode?: "status" | "meal" | "piece"; // defaults to "status"
+  stockCount?: number; // numeric count of meals or pieces left
 }
 
 export interface CustomRecipeItem {
@@ -25,4 +27,6 @@ export interface AppStateData {
       videoUrl?: string;
     };
   };
+  telegramBotToken?: string; // Optional custom bot token
+  telegramChatId?: string; // Optional custom group chat ID
 }
