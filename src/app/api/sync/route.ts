@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { redis } from "../../../lib/redis";
-import { HouseholdState } from "../../../lib/types";
-import { generateSmartSchedule } from "../../../lib/store";
+import { AppStateData } from "../../../lib/types";
+import { defaultPantryItems, defaultRecipes } from "../../../lib/defaultRecipes";
+import { generateWeeklySchedule } from "../../../lib/store";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -16,26 +17,26 @@ export async function GET(request: Request) {
   }
 
   const key = `ulam_state_${code}`;
-  let state = await redis.get<HouseholdState>(key);
+  let state = await redis.get<any>(key);
 
-  if (!state) {
-    // Initialize new state if not found in database
+  // Initialize or Migrate to v2
+  if (!state || !state.weeklySchedule || !state.pantryItems) {
     state = {
       syncCode: code,
       updatedAt: Date.now(),
-      currentSchedule: generateSmartSchedule(),
-      customRecipes: [],
-      completedGroceries: [],
+      pantryItems: defaultPantryItems,
+      recipesPool: defaultRecipes,
+      weeklySchedule: generateWeeklySchedule(defaultPantryItems, defaultRecipes),
     };
     await redis.set(key, state);
   }
 
-  return NextResponse.json(state);
+  return NextResponse.json(state as AppStateData);
 }
 
 export async function POST(request: Request) {
   try {
-    const state: HouseholdState = await request.json();
+    const state: AppStateData = await request.json();
     if (!state || !state.syncCode) {
       return NextResponse.json({ error: "Invalid state object" }, { status: 400 });
     }

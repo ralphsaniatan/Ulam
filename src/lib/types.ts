@@ -1,32 +1,28 @@
-export interface RecipeIngredient {
-  id: string;
-  item: string;
-  quantity: string;
-  aisle: "Fresh Produce" | "Meat & Frozen" | "Pantry Staples & Asian Aisle";
-}
-
-export interface Recipe {
+export interface PantryIngredientItem {
   id: string;
   name: string;
-  category: "Family Dinner" | "School Baon" | "Toddler Track" | "Snack Track";
-  ingredients: RecipeIngredient[];
-  pivots: {
-    toddler: string;
-    baon: string;
-  };
+  category: "Proteins" | "Produce" | "Pantry Staples";
+  status: "PLENTY" | "LOW" | "OUT";
 }
 
-export interface HouseholdState {
+export interface CustomRecipeItem {
+  id: string;
+  title: string;
+  videoUrl?: string;
+  associatedIngredientIds: string[];
+  cookingInstructions: string;
+}
+
+export interface AppStateData {
   syncCode: string;
-  updatedAt: number;
-  currentSchedule: {
-    [day: string]: {
-      dinnerId: string;
-      baonId: string;
-      toddlerId: string;
-      snackId: string;
+  updatedAt: number; // For client-server sync conflict resolution
+  pantryItems: PantryIngredientItem[];
+  recipesPool: CustomRecipeItem[];
+  weeklySchedule: {
+    [dayOfWeek: string]: { // "Monday", "Tuesday", etc.
+      recipeId: string;
+      title: string;
+      videoUrl?: string;
     };
   };
-  customRecipes: Recipe[];
-  completedGroceries: string[]; // Array of string IDs mapping to ingredients e.g. "recipeId-ingredientIndex"
 }
