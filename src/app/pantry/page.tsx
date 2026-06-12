@@ -213,7 +213,7 @@ export default function PantryPage() {
       </header>
 
       {/* Floating Injector Form */}
-      <section className="bg-slate-50 dark:bg-slate-900/50 border border-slate-200/50 dark:border-slate-850 p-5 rounded-3xl space-y-4">
+      <section className="bg-slate-50 dark:bg-slate-900/50 border border-slate-200/50 dark:border-slate-800 p-5 rounded-3xl space-y-4">
         <div className="flex items-center gap-1.5 text-[10px] uppercase font-black tracking-widest text-slate-400 dark:text-slate-500">
           <Plus className="w-3.5 h-3.5" />
           Add Custom Ingredient
@@ -308,11 +308,11 @@ export default function PantryPage() {
                   return (
                     <div
                       key={item.id}
-                      className="p-3.5 rounded-2xl border border-slate-200/40 dark:border-slate-850 bg-white dark:bg-slate-900/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm"
+                      className="p-3.5 rounded-2xl border border-slate-200/40 dark:border-slate-800 bg-white dark:bg-slate-900/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm"
                     >
                       <div className="flex items-center justify-between w-full sm:w-auto">
                         <div className="space-y-0.5 text-left">
-                          <span className="text-xs font-bold text-slate-800 dark:text-slate-250 block">
+                          <span className="text-xs font-bold text-slate-800 dark:text-slate-200 block">
                             {item.name}
                           </span>
                           <span className="text-[9px] text-slate-400 dark:text-slate-500 font-semibold uppercase tracking-wider block">
@@ -334,7 +334,7 @@ export default function PantryPage() {
                         
                         {/* 1. Status-Only mode (Standard 3-way toggle) */}
                         {mode === "status" && (
-                          <div className="flex rounded-xl bg-slate-50 dark:bg-slate-950 p-1 border border-slate-200/50 dark:border-slate-850">
+                          <div className="flex rounded-xl bg-slate-50 dark:bg-slate-950 p-1 border border-slate-200/50 dark:border-slate-800">
                             {(["PLENTY", "LOW", "OUT"] as const).map((statusOption) => {
                               const isSelected = resolvedStatus === statusOption;
                               return (
@@ -362,7 +362,7 @@ export default function PantryPage() {
                         {/* 2. Meal Portions mode (Meals left counter) */}
                         {mode === "meal" && (
                           <div className="flex items-center gap-2">
-                            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-250/50 dark:border-slate-850">
+                            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200/50 dark:border-slate-800">
                               <button
                                 type="button"
                                 onClick={() => handleUpdateCount(item.id, false)}
@@ -372,7 +372,7 @@ export default function PantryPage() {
                                 <Minus className="w-3.5 h-3.5" />
                               </button>
                               
-                              <span className="text-xs font-extrabold text-slate-700 dark:text-slate-250 min-w-[54px] text-center">
+                              <span className="text-xs font-extrabold text-slate-700 dark:text-slate-200 min-w-[54px] text-center">
                                 {count === 0 
                                   ? "0 meals" 
                                   : count === 1 
@@ -406,7 +406,7 @@ export default function PantryPage() {
                         {/* 3. Piece Count mode (Pieces left counter) */}
                         {mode === "piece" && (
                           <div className="flex items-center gap-2">
-                            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-250/50 dark:border-slate-850">
+                            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200/50 dark:border-slate-800">
                               <button
                                 type="button"
                                 onClick={() => handleUpdateCount(item.id, false)}
@@ -416,7 +416,7 @@ export default function PantryPage() {
                                 <Minus className="w-3.5 h-3.5" />
                               </button>
                               
-                              <span className="text-xs font-extrabold text-slate-700 dark:text-slate-250 min-w-[54px] text-center">
+                              <span className="text-xs font-extrabold text-slate-700 dark:text-slate-200 min-w-[54px] text-center">
                                 {count === 0 
                                   ? "0 pcs" 
                                   : count === 1 
@@ -450,7 +450,7 @@ export default function PantryPage() {
                         {/* Desktop Delete Button */}
                         <button
                           onClick={() => handleRemoveIngredient(item.id)}
-                          className="hidden sm:block p-1.5 rounded-xl border border-transparent hover:border-slate-250 dark:hover:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 text-slate-400 hover:text-red-500 active:scale-95 transition-all cursor-pointer"
+                          className="hidden sm:block p-1.5 rounded-xl border border-transparent hover:border-slate-350 dark:hover:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 text-slate-400 hover:text-red-500 active:scale-95 transition-all cursor-pointer"
                           title="Delete ingredient"
                         >
                           <Trash2 className="w-3.5 h-3.5" />

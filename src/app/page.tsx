@@ -9,7 +9,6 @@ import {
   fetchHouseholdState 
 } from "@/lib/store";
 import { AppStateData, PantryIngredientItem, CustomRecipeItem } from "@/lib/types";
-import { VideoOverlay } from "@/components/VideoOverlay";
 import { 
   ChefHat, 
   Video, 
@@ -28,7 +27,6 @@ export default function DailyDashboard() {
   
   // Active day selector (defaults to current weekday, or Monday if weekend)
   const [selectedDay, setSelectedDay] = useState("Monday");
-  const [isVideoOpen, setIsVideoOpen] = useState(false);
   
   // Sync code modal/input state
   const [isSyncing, setIsSyncing] = useState(false);
@@ -192,7 +190,7 @@ export default function DailyDashboard() {
             setInputCode(syncCode);
             setIsSyncing(true);
           }}
-          className="px-2.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-850 bg-slate-50 dark:bg-slate-900/50 text-[11px] font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer"
+          className="px-2.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 text-[11px] font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer"
         >
           <Database className="w-3 h-3 text-orange-500" />
           <span>{syncCode}</span>
@@ -241,13 +239,15 @@ export default function DailyDashboard() {
 
         {/* Watch video action trigger */}
         {recipe?.videoUrl ? (
-          <button
-            onClick={() => setIsVideoOpen(true)}
-            className="mt-6 w-full py-3 rounded-2xl bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-lg shadow-orange-500/20 active:scale-98 transition-all cursor-pointer"
+          <a
+            href={recipe.videoUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-6 w-full py-3 rounded-2xl bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-lg shadow-orange-500/20 active:scale-98 transition-all cursor-pointer text-center"
           >
             <Video className="w-4 h-4" />
             Watch Recipe Video
-          </button>
+          </a>
         ) : (
           <div className="mt-5 text-[10px] text-slate-500 font-medium italic">
             No tutorial video linked. Add one in Custom Recipe Builder.
@@ -336,7 +336,7 @@ export default function DailyDashboard() {
                     <div
                       key={item.id}
                       onClick={() => handleToggleIngredientStatus(item, item.status)}
-                      className="flex justify-between items-center p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-900/40 border border-slate-100 dark:border-slate-850 cursor-pointer active:scale-99 transition-all hover:bg-slate-100 dark:hover:bg-slate-800 group"
+                      className="flex justify-between items-center p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-900/40 border border-slate-100 dark:border-slate-800 cursor-pointer active:scale-99 transition-all hover:bg-slate-100 dark:hover:bg-slate-800 group"
                     >
                       <div className="flex items-center gap-2.5">
                         <div className="w-4 h-4 rounded-full bg-emerald-500 flex items-center justify-center">
@@ -390,7 +390,7 @@ export default function DailyDashboard() {
                 <button
                   type="button"
                   onClick={() => setIsSyncing(false)}
-                  className="flex-1 py-2 rounded-xl border border-slate-200 dark:border-slate-850 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-250 font-bold text-[11px] transition-all cursor-pointer"
+                  className="flex-1 py-2 rounded-xl border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 font-bold text-[11px] transition-all cursor-pointer"
                 >
                   Cancel
                 </button>
@@ -406,15 +406,7 @@ export default function DailyDashboard() {
         </div>
       )}
 
-      {/* VideoOverlay Modal */}
-      {recipe?.videoUrl && (
-        <VideoOverlay
-          isOpen={isVideoOpen}
-          onClose={() => setIsVideoOpen(false)}
-          videoUrl={recipe.videoUrl}
-          recipeTitle={recipe.title}
-        />
-      )}
+
     </div>
   );
 }

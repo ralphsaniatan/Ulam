@@ -208,7 +208,7 @@ export default function PlannerPage() {
 
                 <button
                   onClick={() => handleSwapDayMeal(day)}
-                  className="p-2.5 rounded-xl border border-slate-200 dark:border-slate-850 hover:bg-slate-50 dark:hover:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-700 text-slate-600 dark:text-slate-400 active:scale-95 transition-all flex items-center justify-center cursor-pointer"
+                  className="p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-700 text-slate-600 dark:text-slate-400 active:scale-95 transition-all flex items-center justify-center cursor-pointer"
                   title="Swap meal with a different dinner choice"
                 >
                   <Shuffle className="w-4 h-4 text-orange-500" />
