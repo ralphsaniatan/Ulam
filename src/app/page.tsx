@@ -4,7 +4,8 @@ import React, { useEffect, useState } from "react";
 import { 
   getSyncCode, 
   setSyncCode as saveSyncCode, 
-  getHouseholdState, 
+  getHouseholdState,
+  loadHouseholdState, 
   pushHouseholdState, 
   fetchHouseholdState 
 } from "@/lib/store";
@@ -40,8 +41,13 @@ export default function DailyDashboard() {
     const code = getSyncCode();
     setSyncCode(code);
     setInputCode(code);
-    const loadedState = getHouseholdState(code);
-    setState(loadedState);
+    
+    const init = async () => {
+      const loadedState = await loadHouseholdState(code);
+      setState(loadedState);
+      setIsLoaded(true);
+    };
+    init();
     
     // Resolve current weekday
     const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
@@ -51,8 +57,6 @@ export default function DailyDashboard() {
     } else {
       setSelectedDay("Monday"); // Default to Monday on weekends
     }
-    
-    setIsLoaded(true);
   }, []);
 
   // 2. State Polling from Redis

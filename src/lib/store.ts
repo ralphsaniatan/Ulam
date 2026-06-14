@@ -220,6 +220,18 @@ export function getHouseholdState(syncCode: string): AppStateData {
   return newState;
 }
 
+export async function loadHouseholdState(syncCode: string): Promise<AppStateData> {
+  const serverState = await fetchHouseholdState(syncCode);
+  if (serverState) {
+    if (typeof window !== "undefined") {
+      const key = `${LOCAL_STORAGE_KEY_PREFIX}${syncCode}`;
+      localStorage.setItem(key, JSON.stringify(serverState));
+    }
+    return serverState;
+  }
+  return getHouseholdState(syncCode);
+}
+
 export function updateHouseholdState(syncCode: string, state: AppStateData): void {
   if (typeof window === "undefined") return;
   const key = `${LOCAL_STORAGE_KEY_PREFIX}${syncCode}`;

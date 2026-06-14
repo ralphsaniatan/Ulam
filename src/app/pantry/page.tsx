@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { 
   getSyncCode, 
-  getHouseholdState, 
+  loadHouseholdState, 
   pushHouseholdState, 
   fetchHouseholdState,
   resolvePantryItemStatus 
@@ -27,9 +27,13 @@ export default function PantryPage() {
   useEffect(() => {
     const code = getSyncCode();
     setSyncCode(code);
-    const loadedState = getHouseholdState(code);
-    setState(loadedState);
-    setIsLoaded(true);
+    
+    const init = async () => {
+      const loadedState = await loadHouseholdState(code);
+      setState(loadedState);
+      setIsLoaded(true);
+    };
+    init();
   }, []);
 
   // 2. State Polling
