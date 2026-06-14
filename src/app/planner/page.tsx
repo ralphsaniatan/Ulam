@@ -67,10 +67,24 @@ export default function PlannerPage() {
 
   if (!isLoaded || !state) {
     return (
-      <div className="flex-1 flex items-center justify-center min-h-[60vh]">
-        <div className="flex flex-col items-center gap-3 text-slate-400">
-          <div className="w-8 h-8 border-4 border-orange-500 border-t-transparent rounded-full animate-spin"></div>
-          <p className="text-sm font-medium">Syncing kitchen planner...</p>
+      <div className="p-5 flex-1 flex flex-col space-y-6 animate-pulse">
+        {/* Header Skeleton */}
+        <div className="pt-2 space-y-2">
+          <div className="h-3.5 w-28 bg-slate-200 dark:bg-slate-800 rounded-full" />
+          <div className="h-6 w-48 bg-slate-200 dark:bg-slate-800 rounded-lg" />
+        </div>
+
+        {/* Banner Skeleton */}
+        <div className="h-40 bg-slate-200 dark:bg-slate-800 rounded-3xl animate-pulse" />
+
+        {/* 5-Day Dinner Cycle Skeleton */}
+        <div className="space-y-3">
+          <div className="h-4 w-36 bg-slate-200 dark:bg-slate-800 rounded-full px-1" />
+          <div className="space-y-3">
+            {[1, 2, 3, 4, 5].map((i) => (
+              <div key={i} className="h-20 bg-slate-200 dark:bg-slate-800 rounded-2xl" />
+            ))}
+          </div>
         </div>
       </div>
     );
@@ -128,7 +142,7 @@ export default function PlannerPage() {
   };
 
   return (
-    <div className="p-5 flex-1 flex flex-col space-y-6 animate-in fade-in duration-300">
+    <div className="p-5 flex-1 flex flex-col space-y-6">
       
       {/* Header */}
       <header className="pt-2">
