@@ -727,21 +727,6 @@ export default function AddRecipePage() {
                 />
               </div>
 
-              {/* Video URL Field */}
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest px-1 flex items-center gap-1">
-                  <Video className="w-3.5 h-3.5 text-orange-500" />
-                  Recipe Video Link (YouTube, Reels, TikTok)
-                </label>
-                <input
-                  type="url"
-                  value={videoUrl}
-                  onChange={(e) => setVideoUrl(e.target.value)}
-                  placeholder="https://..."
-                  className="w-full px-4 py-3 border border-slate-200 dark:border-slate-800 rounded-2xl bg-slate-50 dark:bg-slate-900 text-xs font-semibold text-slate-800 dark:text-slate-100 focus:outline-none focus:border-orange-500 focus:bg-white dark:focus:bg-slate-950 transition-all"
-                />
-              </div>
-
               {/* Interactive Combobox Ingredients Picker */}
               <div className="space-y-1.5" ref={dropdownRef}>
                 <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest px-1">
