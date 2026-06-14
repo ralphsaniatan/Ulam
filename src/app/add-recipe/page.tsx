@@ -743,35 +743,11 @@ export default function AddRecipePage() {
               </div>
 
               {/* Interactive Combobox Ingredients Picker */}
-              <div className="space-y-1.5 relative" ref={dropdownRef}>
+              <div className="space-y-1.5" ref={dropdownRef}>
                 <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest px-1">
                   Associated Ingredients
                 </label>
                 
-                {selectedIngredientIds.length > 0 && (
-                  <div className="flex flex-wrap gap-1.5 p-3 rounded-2xl border border-slate-150 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/20 mb-2">
-                    {selectedIngredientIds.map((id) => {
-                      const item = state.pantryItems.find((p) => p.id === id);
-                      const name = item ? item.name : id;
-                      return (
-                        <div
-                          key={id}
-                          className="flex items-center gap-1 px-2.5 py-1 rounded-xl bg-orange-500/10 dark:bg-orange-500/15 border border-orange-500/10 text-orange-600 dark:text-orange-400 text-[10px] font-bold"
-                        >
-                          <span>{name}</span>
-                          <button
-                            type="button"
-                            onClick={() => handleToggleIngredient(id)}
-                            className="p-0.5 hover:bg-orange-500/20 rounded-full transition-colors cursor-pointer"
-                          >
-                            <X className="w-3 h-3 stroke-[2.5]" />
-                          </button>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-
                 <div className="relative">
                   <input
                     type="text"
@@ -801,91 +777,115 @@ export default function AddRecipePage() {
                   >
                     <ChevronDown className="w-4 h-4" />
                   </button>
+
+                  {isDropdownOpen && (
+                    <div className="absolute left-0 right-0 top-full mt-1.5 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl max-h-48 overflow-y-auto z-50 animate-in fade-in slide-in-from-top-2 duration-200 no-scrollbar">
+                      <div className="p-1.5 space-y-0.5">
+                        {/* Add Custom Option at the top if input is not empty and not an exact match */}
+                        {searchQuery.trim() && !state.pantryItems.some(
+                          (p) => p.name.toLowerCase() === searchQuery.trim().toLowerCase()
+                        ) && (
+                          <div className="p-2 border border-dashed border-orange-500/20 bg-orange-500/5 rounded-xl mb-1.5 space-y-1.5 animate-in fade-in duration-100">
+                            <div className="flex items-center gap-1.5 text-[10px] font-extrabold text-orange-600 dark:text-orange-400 uppercase tracking-wider px-1">
+                              <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
+                              Create ingredient: "{searchQuery.trim()}"
+                            </div>
+                            
+                            <div className="grid grid-cols-3 gap-1">
+                              <button
+                                type="button"
+                                onClick={() => handleAddIngredientInline("Proteins")}
+                                className="py-1.5 px-2 bg-white dark:bg-slate-800 hover:bg-orange-500 hover:text-white dark:hover:bg-orange-500 border border-slate-200 dark:border-slate-700 rounded-lg text-[10px] font-bold text-slate-700 dark:text-slate-200 active:scale-95 transition-all text-center cursor-pointer"
+                              >
+                                🍖 Protein
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleAddIngredientInline("Produce")}
+                                className="py-1.5 px-2 bg-white dark:bg-slate-800 hover:bg-orange-500 hover:text-white dark:hover:bg-orange-500 border border-slate-200 dark:border-slate-700 rounded-lg text-[10px] font-bold text-slate-700 dark:text-slate-200 active:scale-95 transition-all text-center cursor-pointer"
+                              >
+                                🥦 Produce
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleAddIngredientInline("Pantry Staples")}
+                                className="py-1.5 px-2 bg-white dark:bg-slate-800 hover:bg-orange-500 hover:text-white dark:hover:bg-orange-500 border border-slate-200 dark:border-slate-700 rounded-lg text-[10px] font-bold text-slate-700 dark:text-slate-200 active:scale-95 transition-all text-center cursor-pointer"
+                              >
+                                🧂 Staple
+                              </button>
+                            </div>
+                            
+                            <div className="text-[8px] text-slate-400 dark:text-slate-500 px-1 text-center font-medium">
+                              Or press <kbd className="font-sans font-bold">Enter</kbd> to auto-classify
+                            </div>
+                          </div>
+                        )}
+
+                        {filteredPantry.length > 0 ? (
+                          filteredPantry.map((item) => {
+                            const isSelected = selectedIngredientIds.includes(item.id);
+                            return (
+                              <button
+                                type="button"
+                                key={item.id}
+                                onClick={() => handleToggleIngredient(item.id)}
+                                className={cn(
+                                  "w-full flex items-center justify-between px-3 py-2 rounded-xl text-left text-xs font-semibold transition-all cursor-pointer",
+                                  isSelected
+                                    ? "bg-orange-500/10 text-orange-600 dark:text-orange-400"
+                                    : "hover:bg-slate-50 dark:hover:bg-slate-800/50 text-slate-600 dark:text-slate-350"
+                                )}
+                              >
+                                <span>{item.name}</span>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-[9px] opacity-60 font-semibold uppercase tracking-wider">
+                                    {item.category.replace("Pantry Staples", "Staple").replace("Proteins", "Protein").replace("Produce", "Produce")}
+                                  </span>
+                                  {isSelected && <Check className="w-3 h-3 text-orange-500 stroke-[3] shrink-0" />}
+                                </div>
+                              </button>
+                            );
+                          })
+                        ) : (
+                          // Show "Not found" helper text only if we didn't show the "Add" button above either
+                          !searchQuery.trim() && (
+                            <div className="p-3 text-center text-xs font-bold text-slate-400">
+                              Pantry list is empty. Type to create items.
+                            </div>
+                          )
+                        )}
+
+                        {searchQuery.trim() && filteredPantry.length === 0 && (
+                          <div className="p-3 text-center text-[10px] text-slate-400 dark:text-slate-500">
+                            No matching existing ingredients.
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
-                {isDropdownOpen && (
-                  <div className="absolute left-0 right-0 top-full mt-1.5 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl max-h-48 overflow-y-auto z-50 animate-in fade-in slide-in-from-top-2 duration-200 no-scrollbar">
-                    <div className="p-1.5 space-y-0.5">
-                      {/* Add Custom Option at the top if input is not empty and not an exact match */}
-                      {searchQuery.trim() && !state.pantryItems.some(
-                        (p) => p.name.toLowerCase() === searchQuery.trim().toLowerCase()
-                      ) && (
-                        <div className="p-2 border border-dashed border-orange-500/20 bg-orange-500/5 rounded-xl mb-1.5 space-y-1.5 animate-in fade-in duration-100">
-                          <div className="flex items-center gap-1.5 text-[10px] font-extrabold text-orange-600 dark:text-orange-400 uppercase tracking-wider px-1">
-                            <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
-                            Create ingredient: "{searchQuery.trim()}"
-                          </div>
-                          
-                          <div className="grid grid-cols-3 gap-1">
-                            <button
-                              type="button"
-                              onClick={() => handleAddIngredientInline("Proteins")}
-                              className="py-1.5 px-2 bg-white dark:bg-slate-800 hover:bg-orange-500 hover:text-white dark:hover:bg-orange-500 border border-slate-200 dark:border-slate-700 rounded-lg text-[10px] font-bold text-slate-700 dark:text-slate-200 active:scale-95 transition-all text-center cursor-pointer"
-                            >
-                              🍖 Protein
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleAddIngredientInline("Produce")}
-                              className="py-1.5 px-2 bg-white dark:bg-slate-800 hover:bg-orange-500 hover:text-white dark:hover:bg-orange-500 border border-slate-200 dark:border-slate-700 rounded-lg text-[10px] font-bold text-slate-700 dark:text-slate-200 active:scale-95 transition-all text-center cursor-pointer"
-                            >
-                              🥦 Produce
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleAddIngredientInline("Pantry Staples")}
-                              className="py-1.5 px-2 bg-white dark:bg-slate-800 hover:bg-orange-500 hover:text-white dark:hover:bg-orange-500 border border-slate-200 dark:border-slate-700 rounded-lg text-[10px] font-bold text-slate-700 dark:text-slate-200 active:scale-95 transition-all text-center cursor-pointer"
-                            >
-                              🧂 Staple
-                            </button>
-                          </div>
-                          
-                          <div className="text-[8px] text-slate-400 dark:text-slate-500 px-1 text-center font-medium">
-                            Or press <kbd className="font-sans font-bold">Enter</kbd> to auto-classify
-                          </div>
+                {selectedIngredientIds.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 p-3 rounded-2xl border border-slate-150 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/20 mt-2">
+                    {selectedIngredientIds.map((id) => {
+                      const item = state.pantryItems.find((p) => p.id === id);
+                      const name = item ? item.name : id;
+                      return (
+                        <div
+                          key={id}
+                          className="flex items-center gap-1 px-2.5 py-1 rounded-xl bg-orange-500/10 dark:bg-orange-500/15 border border-orange-500/10 text-orange-600 dark:text-orange-400 text-[10px] font-bold"
+                        >
+                          <span>{name}</span>
+                          <button
+                            type="button"
+                            onClick={() => handleToggleIngredient(id)}
+                            className="p-0.5 hover:bg-orange-500/20 rounded-full transition-colors cursor-pointer"
+                          >
+                            <X className="w-3 h-3 stroke-[2.5]" />
+                          </button>
                         </div>
-                      )}
-
-                      {filteredPantry.length > 0 ? (
-                        filteredPantry.map((item) => {
-                          const isSelected = selectedIngredientIds.includes(item.id);
-                          return (
-                            <button
-                              type="button"
-                              key={item.id}
-                              onClick={() => handleToggleIngredient(item.id)}
-                              className={cn(
-                                "w-full flex items-center justify-between px-3 py-2 rounded-xl text-left text-xs font-semibold transition-all cursor-pointer",
-                                isSelected
-                                  ? "bg-orange-500/10 text-orange-600 dark:text-orange-400"
-                                  : "hover:bg-slate-50 dark:hover:bg-slate-800/50 text-slate-600 dark:text-slate-350"
-                              )}
-                            >
-                              <span>{item.name}</span>
-                              <div className="flex items-center gap-2">
-                                <span className="text-[9px] opacity-60 font-semibold uppercase tracking-wider">
-                                  {item.category.replace("Pantry Staples", "Staple").replace("Proteins", "Protein").replace("Produce", "Produce")}
-                                </span>
-                                {isSelected && <Check className="w-3 h-3 text-orange-500 stroke-[3] shrink-0" />}
-                              </div>
-                            </button>
-                          );
-                        })
-                      ) : (
-                        // Show "Not found" helper text only if we didn't show the "Add" button above either
-                        !searchQuery.trim() && (
-                          <div className="p-3 text-center text-xs font-bold text-slate-400">
-                            Pantry list is empty. Type to create items.
-                          </div>
-                        )
-                      )}
-
-                      {searchQuery.trim() && filteredPantry.length === 0 && (
-                        <div className="p-3 text-center text-[10px] text-slate-400 dark:text-slate-500">
-                          No matching existing ingredients.
-                        </div>
-                      )}
-                    </div>
+                      );
+                    })}
                   </div>
                 )}
               </div>
