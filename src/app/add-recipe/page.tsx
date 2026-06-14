@@ -176,8 +176,38 @@ export default function AddRecipePage() {
     );
   };
 
+  // Heuristic-based auto-classifier for ingredient categories
+  const classifyIngredientCategory = (name: string): "Proteins" | "Produce" | "Pantry Staples" => {
+    const lower = name.toLowerCase();
+    
+    const proteinKeywords = [
+      "chicken", "pork", "beef", "fish", "meat", "ribs", "steak", "egg", "bacon", "turkey", 
+      "ham", "tilapia", "salmon", "tuna", "crab", "squid", "lamb", "veal", "mutton", "sausage", 
+      "hotdog", "shrimp", "prawn", "tofu", "seafood", "anchovy", "sardine", "clam", "mussel"
+    ];
+    
+    const produceKeywords = [
+      "sayote", "ginger", "spinach", "gabi", "radish", "kangkong", "garlic", "onion", 
+      "potato", "cabbage", "corn", "carrot", "tomato", "eggplant", "talong", "ampalaya", 
+      "chili", "pepper", "lemon", "lime", "calamansi", "broccoli", "lettuce", "parsley", 
+      "basil", "mint", "cilantro", "mango", "banana", "apple", "veg", "greens", "leaf", 
+      "leaves", "kamote", "sitaw", "okra", "bawang", "sibuyas", "luya", "calabasa", 
+      "squash", "cucumber", "mushroom"
+    ];
+    
+    if (proteinKeywords.some(kw => lower.includes(kw))) {
+      return "Proteins";
+    }
+    
+    if (produceKeywords.some(kw => lower.includes(kw))) {
+      return "Produce";
+    }
+    
+    return "Pantry Staples";
+  };
+
   // Form: Add new ingredient inline from combobox search
-  const handleAddIngredientInline = async () => {
+  const handleAddIngredientInline = async (forcedCategory?: "Proteins" | "Produce" | "Pantry Staples") => {
     const name = searchQuery.trim();
     if (!name) return;
 
@@ -191,10 +221,11 @@ export default function AddRecipePage() {
     let finalId = id;
 
     if (!exists) {
+      const category = forcedCategory || classifyIngredientCategory(name);
       const newItem: PantryIngredientItem = {
         id,
         name: name.charAt(0).toUpperCase() + name.slice(1),
-        category: "Pantry Staples",
+        category,
         status: "OUT",
         trackingMode: "status",
         stockCount: 0
@@ -779,14 +810,40 @@ export default function AddRecipePage() {
                       {searchQuery.trim() && !state.pantryItems.some(
                         (p) => p.name.toLowerCase() === searchQuery.trim().toLowerCase()
                       ) && (
-                        <button
-                          type="button"
-                          onClick={handleAddIngredientInline}
-                          className="w-full flex items-center gap-2 px-3 py-2.5 bg-orange-500/10 dark:bg-orange-500/15 text-orange-600 dark:text-orange-400 rounded-xl text-left text-xs font-bold hover:bg-orange-500/20 active:scale-98 transition-all cursor-pointer mb-1 border border-dashed border-orange-500/25 animate-in fade-in duration-100"
-                        >
-                          <Plus className="w-4 h-4 shrink-0 stroke-[2.5]" />
-                          <span>Add "{searchQuery.trim()}" as a new ingredient</span>
-                        </button>
+                        <div className="p-2 border border-dashed border-orange-500/20 bg-orange-500/5 rounded-xl mb-1.5 space-y-1.5 animate-in fade-in duration-100">
+                          <div className="flex items-center gap-1.5 text-[10px] font-extrabold text-orange-600 dark:text-orange-400 uppercase tracking-wider px-1">
+                            <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
+                            Create ingredient: "{searchQuery.trim()}"
+                          </div>
+                          
+                          <div className="grid grid-cols-3 gap-1">
+                            <button
+                              type="button"
+                              onClick={() => handleAddIngredientInline("Proteins")}
+                              className="py-1.5 px-2 bg-white dark:bg-slate-800 hover:bg-orange-500 hover:text-white dark:hover:bg-orange-500 border border-slate-200 dark:border-slate-700 rounded-lg text-[10px] font-bold text-slate-700 dark:text-slate-200 active:scale-95 transition-all text-center cursor-pointer"
+                            >
+                              🍖 Protein
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleAddIngredientInline("Produce")}
+                              className="py-1.5 px-2 bg-white dark:bg-slate-800 hover:bg-orange-500 hover:text-white dark:hover:bg-orange-500 border border-slate-200 dark:border-slate-700 rounded-lg text-[10px] font-bold text-slate-700 dark:text-slate-200 active:scale-95 transition-all text-center cursor-pointer"
+                            >
+                              🥦 Produce
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleAddIngredientInline("Pantry Staples")}
+                              className="py-1.5 px-2 bg-white dark:bg-slate-800 hover:bg-orange-500 hover:text-white dark:hover:bg-orange-500 border border-slate-200 dark:border-slate-700 rounded-lg text-[10px] font-bold text-slate-700 dark:text-slate-200 active:scale-95 transition-all text-center cursor-pointer"
+                            >
+                              🧂 Staple
+                            </button>
+                          </div>
+                          
+                          <div className="text-[8px] text-slate-400 dark:text-slate-500 px-1 text-center font-medium">
+                            Or press <kbd className="font-sans font-bold">Enter</kbd> to auto-classify
+                          </div>
+                        </div>
                       )}
 
                       {filteredPantry.length > 0 ? (
