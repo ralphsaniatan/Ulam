@@ -67,6 +67,9 @@ export default function AddRecipePage() {
   const [chatId, setChatId] = useState("");
   const [settingsFeedback, setSettingsFeedback] = useState("");
 
+  // Alternatives mapping: { [ingredientId]: [altId1, altId2, ...] }
+  const [recipeAlternatives, setRecipeAlternatives] = useState<Record<string, string[]>>({});
+
   // Success/Error states
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
@@ -171,9 +174,44 @@ export default function AddRecipePage() {
 
   // Form: Toggle ingredient selection
   const handleToggleIngredient = (id: string) => {
-    setSelectedIngredientIds((prev) =>
-      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
-    );
+    setSelectedIngredientIds((prev) => {
+      const isRemoving = prev.includes(id);
+      if (isRemoving) {
+        setRecipeAlternatives((prevAlts) => {
+          const updated = { ...prevAlts };
+          delete updated[id];
+          return updated;
+        });
+        return prev.filter((i) => i !== id);
+      } else {
+        return [...prev, id];
+      }
+    });
+  };
+
+  // Form: Add alternative for a recipe ingredient
+  const handleAddAlternative = (ingredientId: string, altId: string) => {
+    setRecipeAlternatives((prev) => {
+      const current = prev[ingredientId] || [];
+      if (!current.includes(altId)) {
+        return {
+          ...prev,
+          [ingredientId]: [...current, altId],
+        };
+      }
+      return prev;
+    });
+  };
+
+  // Form: Remove alternative for a recipe ingredient
+  const handleRemoveAlternative = (ingredientId: string, altId: string) => {
+    setRecipeAlternatives((prev) => {
+      const current = prev[ingredientId] || [];
+      return {
+        ...prev,
+        [ingredientId]: current.filter((id) => id !== altId),
+      };
+    });
   };
 
   // Heuristic-based auto-classifier for ingredient categories
@@ -257,6 +295,7 @@ export default function AddRecipePage() {
     setVideoUrl(recipe.videoUrl || "");
     setCookingInstructions(recipe.cookingInstructions || "");
     setSelectedIngredientIds(recipe.associatedIngredientIds);
+    setRecipeAlternatives(recipe.alternatives || {});
     setEditingRecipeId(recipe.id);
     setFormTab("manual");
     setCurrentView("form");
@@ -298,6 +337,7 @@ export default function AddRecipePage() {
     setVideoUrl("");
     setCookingInstructions("");
     setSelectedIngredientIds([]);
+    setRecipeAlternatives({});
     setEditingRecipeId(null);
     setTiktokUrlInput("");
     setFormTab("manual");
@@ -334,6 +374,7 @@ export default function AddRecipePage() {
       videoUrl: videoUrl.trim() || undefined,
       associatedIngredientIds: selectedIngredientIds,
       cookingInstructions: cookingInstructions.trim(),
+      alternatives: recipeAlternatives,
     };
 
     let updatedPool = [...state.recipesPool];
@@ -851,23 +892,82 @@ export default function AddRecipePage() {
                 </div>
 
                 {selectedIngredientIds.length > 0 && (
-                  <div className="flex flex-wrap gap-1.5 p-3 rounded-2xl border border-slate-150 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/20 mt-2">
+                  <div className="space-y-2 mt-3">
                     {selectedIngredientIds.map((id) => {
                       const item = state.pantryItems.find((p) => p.id === id);
                       const name = item ? item.name : id;
+                      const alts = recipeAlternatives[id] || [];
+                      
                       return (
-                        <div
-                          key={id}
-                          className="flex items-center gap-1 px-2.5 py-1 rounded-xl bg-orange-500/10 dark:bg-orange-500/15 border border-orange-500/10 text-orange-600 dark:text-orange-400 text-[10px] font-bold"
-                        >
-                          <span>{name}</span>
-                          <button
-                            type="button"
-                            onClick={() => handleToggleIngredient(id)}
-                            className="p-0.5 hover:bg-orange-500/20 rounded-full transition-colors cursor-pointer"
-                          >
-                            <X className="w-3 h-3 stroke-[2.5]" />
-                          </button>
+                        <div key={id} className="p-3 bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 rounded-2xl space-y-2 animate-in fade-in duration-200">
+                          {/* Ingredient Header Row */}
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-bold text-slate-800 dark:text-slate-100 flex items-center gap-1.5">
+                              <span className="w-1.5 h-1.5 bg-orange-500 rounded-full" />
+                              {name}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => handleToggleIngredient(id)}
+                              className="p-1 hover:bg-red-500/10 hover:text-red-500 rounded-lg text-slate-400 dark:text-slate-500 transition-colors cursor-pointer"
+                              title={`Remove ${name}`}
+                            >
+                              <X className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+
+                          {/* Alternatives list */}
+                          <div className="flex flex-col gap-1.5 pl-3 border-l-2 border-slate-200 dark:border-slate-800">
+                            {alts.length > 0 && (
+                              <div className="flex flex-wrap gap-1">
+                                {alts.map((altId) => {
+                                  const altItem = state.pantryItems.find((p) => p.id === altId);
+                                  const altName = altItem ? altItem.name : altId;
+                                  return (
+                                    <span
+                                      key={altId}
+                                      className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-lg bg-orange-500/5 dark:bg-orange-500/10 border border-orange-500/10 text-orange-600 dark:text-orange-400 text-[9px] font-bold"
+                                    >
+                                      <span>{altName}</span>
+                                      <button
+                                        type="button"
+                                        onClick={() => handleRemoveAlternative(id, altId)}
+                                        className="p-0.5 hover:bg-orange-500/20 rounded-full transition-colors cursor-pointer"
+                                      >
+                                        <X className="w-2.5 h-2.5" />
+                                      </button>
+                                    </span>
+                                  );
+                                })}
+                              </div>
+                            )}
+
+                            {/* Dropdown to add alternative */}
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500">
+                                {alts.length === 0 ? "No alternatives set." : "Substitute:"}
+                              </span>
+                              <select
+                                value=""
+                                onChange={(e) => {
+                                  if (e.target.value) {
+                                    handleAddAlternative(id, e.target.value);
+                                  }
+                                }}
+                                className="px-2 py-1 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-[9px] font-bold text-slate-500 dark:text-slate-400 focus:outline-none cursor-pointer"
+                              >
+                                <option value="">+ Add alternative fallback</option>
+                                {state.pantryItems
+                                  // Exclude the ingredient itself and already added alts
+                                  .filter((p) => p.id !== id && !alts.includes(p.id))
+                                  .map((p) => (
+                                    <option key={p.id} value={p.id}>
+                                      {p.name}
+                                    </option>
+                                  ))}
+                              </select>
+                            </div>
+                          </div>
                         </div>
                       );
                     })}

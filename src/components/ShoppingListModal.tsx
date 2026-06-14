@@ -46,19 +46,46 @@ export function ShoppingListModal({ isOpen, onClose, state }: ShoppingListModalP
   // 3. Filter for ingredients marked OUT (or missing from pantry list)
   const missingIngredients: PantryIngredientItem[] = [];
   requiredIngredientIds.forEach((ingId) => {
+    // Find a scheduled recipe that requires this ingredient to check for alternatives
+    const recipe = recipesPool.find(
+      (r) => scheduledRecipeIds.includes(r.id) && r.associatedIngredientIds.includes(ingId)
+    );
+
     const pantryItem = pantryItems.find((p) => p.id === ingId);
-    if (pantryItem) {
-      if (pantryItem.status === "OUT") {
-        missingIngredients.push(pantryItem);
+    const isPrimaryOut = !pantryItem || pantryItem.status === "OUT";
+
+    if (isPrimaryOut) {
+      // Check if there is an alternative in stock
+      let hasAltInStock = false;
+      if (recipe && recipe.alternatives && recipe.alternatives[ingId]) {
+        hasAltInStock = recipe.alternatives[ingId].some((altId) => {
+          const altItem = pantryItems.find((p) => p.id === altId);
+          return altItem && (altItem.status === "PLENTY" || altItem.status === "LOW");
+        });
       }
-    } else {
-      // Fallback if not found: default to OUT and show it
-      missingIngredients.push({
-        id: ingId,
-        name: ingId.split("-").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" "),
-        category: "Pantry Staples",
-        status: "OUT"
-      });
+
+      // If we don't have any alternative in stock either, add it to the shopping list
+      if (!hasAltInStock) {
+        let nameText = pantryItem 
+          ? pantryItem.name 
+          : ingId.split("-").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+          
+        if (recipe && recipe.alternatives && recipe.alternatives[ingId]) {
+          const altNames = recipe.alternatives[ingId]
+            .map((altId) => pantryItems.find((p) => p.id === altId)?.name || altId)
+            .join(" or ");
+          if (altNames) {
+            nameText = `${nameText} (or ${altNames})`;
+          }
+        }
+
+        missingIngredients.push({
+          id: ingId,
+          name: nameText,
+          category: pantryItem ? pantryItem.category : "Pantry Staples",
+          status: "OUT"
+        });
+      }
     }
   });
 

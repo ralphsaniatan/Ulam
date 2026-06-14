@@ -13,6 +13,7 @@ export interface CustomRecipeItem {
   videoUrl?: string;
   associatedIngredientIds: string[];
   cookingInstructions: string;
+  alternatives?: Record<string, string[]>;
 }
 
 export interface AppStateData {

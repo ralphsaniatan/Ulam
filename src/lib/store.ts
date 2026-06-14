@@ -50,15 +50,35 @@ export function resolvePantryItemStatus(item: PantryIngredientItem): "PLENTY" | 
 }
 
 // Score a recipe based on pantry ingredients status: PLENTY = 2, LOW = 1, OUT = 0
+// Accounts for alternative ingredients if primary is OUT or missing
 export function scoreRecipe(recipe: CustomRecipeItem, pantryItems: PantryIngredientItem[]): number {
   let score = 0;
   for (const ingId of recipe.associatedIngredientIds) {
     const item = pantryItems.find((p) => p.id === ingId);
+    let bestStatus: "PLENTY" | "LOW" | "OUT" = "OUT";
+    
     if (item) {
-      const status = resolvePantryItemStatus(item);
-      if (status === "PLENTY") score += 2;
-      else if (status === "LOW") score += 1;
+      bestStatus = resolvePantryItemStatus(item);
     }
+    
+    // If primary is not plenty, check if alternatives are better
+    if (bestStatus !== "PLENTY" && recipe.alternatives && recipe.alternatives[ingId]) {
+      for (const altId of recipe.alternatives[ingId]) {
+        const altItem = pantryItems.find((p) => p.id === altId);
+        if (altItem) {
+          const altStatus = resolvePantryItemStatus(altItem);
+          if (altStatus === "PLENTY") {
+            bestStatus = "PLENTY";
+            break; // Plenty is the best option, stop searching
+          } else if (altStatus === "LOW" && bestStatus === "OUT") {
+            bestStatus = "LOW";
+          }
+        }
+      }
+    }
+    
+    if (bestStatus === "PLENTY") score += 2;
+    else if (bestStatus === "LOW") score += 1;
   }
   return score;
 }

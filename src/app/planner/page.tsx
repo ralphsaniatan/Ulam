@@ -128,10 +128,19 @@ export default function PlannerPage() {
 
     const total = recipe.associatedIngredientIds.length;
     if (total === 0) return { text: "No ingredients registered", percent: 0, allReady: false };
-
     const onHandCount = recipe.associatedIngredientIds.filter((ingId) => {
       const item = state.pantryItems.find((p) => p.id === ingId);
-      return item && (item.status === "PLENTY" || item.status === "LOW");
+      const isPrimaryReady = item && (item.status === "PLENTY" || item.status === "LOW");
+      if (isPrimaryReady) return true;
+      
+      // Check alternatives
+      if (recipe.alternatives && recipe.alternatives[ingId]) {
+        return recipe.alternatives[ingId].some((altId) => {
+          const altItem = state.pantryItems.find((p) => p.id === altId);
+          return altItem && (altItem.status === "PLENTY" || altItem.status === "LOW");
+        });
+      }
+      return false;
     }).length;
 
     return {
