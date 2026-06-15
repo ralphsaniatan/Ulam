@@ -949,6 +949,28 @@ export default function AddRecipePage() {
                   )}
                 </div>
 
+                {(() => {
+                  const query = searchQuery.trim().toLowerCase();
+                  if (!query) return null;
+                  const isAlreadySelected = state.pantryItems.some(
+                    (p) => selectedIngredientIds.includes(p.id) && 
+                           (p.name.toLowerCase() === query || p.id === slugify(query))
+                  );
+                  if (!isAlreadySelected) return null;
+                  
+                  const matchedItem = state.pantryItems.find(
+                    (p) => p.name.toLowerCase() === query || p.id === slugify(query)
+                  );
+                  const matchedName = matchedItem ? matchedItem.name : searchQuery.trim();
+
+                  return (
+                    <div className="mt-2 p-2.5 rounded-xl text-[10px] font-bold bg-amber-500/10 text-amber-600 dark:text-amber-450 flex items-center gap-1.5 border border-amber-500/20 animate-in fade-in duration-200">
+                      <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping shrink-0" />
+                      <span>⚠️ "{matchedName}" is already selected for this recipe!</span>
+                    </div>
+                  );
+                })()}
+
                 {selectedIngredientIds.length > 0 && (
                   <div className="space-y-2 mt-3">
                     {selectedIngredientIds.map((id) => {
@@ -956,13 +978,29 @@ export default function AddRecipePage() {
                       const name = item ? item.name : id;
                       const alts = recipeAlternatives[id] || [];
                       
+                      const query = searchQuery.trim().toLowerCase();
+                      const isMatched = query !== "" && name.toLowerCase().includes(query);
+
                       return (
-                        <div key={id} className="p-3 bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 rounded-2xl space-y-2 animate-in fade-in duration-200">
+                        <div
+                          key={id}
+                          className={cn(
+                            "p-3 rounded-2xl space-y-2 transition-all duration-300",
+                            isMatched
+                              ? "bg-orange-500/10 dark:bg-orange-500/20 border-orange-500 dark:border-orange-500 shadow-md shadow-orange-500/5 ring-1 ring-orange-500"
+                              : "bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800"
+                          )}
+                        >
                           {/* Ingredient Header Row */}
                           <div className="flex items-center justify-between">
-                            <span className="text-xs font-bold text-slate-800 dark:text-slate-100 flex items-center gap-1.5">
+                            <span className="text-xs font-bold text-slate-800 dark:text-slate-100 flex items-center gap-1.5 flex-wrap">
                               <span className="w-1.5 h-1.5 bg-orange-500 rounded-full" />
-                              {name}
+                              <span>{name}</span>
+                              {isMatched && (
+                                <span className="text-[9px] bg-orange-500 text-white font-extrabold px-1.5 py-0.5 rounded-lg uppercase tracking-wider animate-pulse shrink-0">
+                                  Already Selected
+                                </span>
+                              )}
                             </span>
                             <button
                               type="button"
