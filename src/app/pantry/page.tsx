@@ -9,7 +9,7 @@ import {
   resolvePantryItemStatus 
 } from "@/lib/store";
 import { AppStateData, PantryIngredientItem } from "@/lib/types";
-import { Plus, Apple, Sparkles, Trash2, Check, AlertCircle, Minus } from "lucide-react";
+import { Plus, Apple, Sparkles, Trash2, Check, AlertCircle, Minus, Edit } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export default function PantryPage() {
@@ -22,6 +22,7 @@ export default function PantryPage() {
   const [categoryInput, setCategoryInput] = useState<"Proteins" | "Produce" | "Pantry Staples">("Proteins");
   const [trackingModeInput, setTrackingModeInput] = useState<"status" | "meal" | "piece">("status");
   const [formFeedback, setFormFeedback] = useState({ text: "", type: "" });
+  const [editingItemId, setEditingItemId] = useState<string | null>(null);
 
   // 1. Initial Load
   useEffect(() => {
@@ -92,7 +93,23 @@ export default function PantryPage() {
       .replace(/\-\-+/g, "-");
   };
 
-  // 3. Action: Add custom ingredient
+  // 3. Action: Add or Edit custom ingredient
+  const handleStartEdit = (item: PantryIngredientItem) => {
+    setEditingItemId(item.id);
+    setNameInput(item.name);
+    setCategoryInput(item.category);
+    setTrackingModeInput(item.trackingMode || "status");
+    setFormFeedback({ text: "", type: "" });
+  };
+
+  const handleCancelEdit = () => {
+    setEditingItemId(null);
+    setNameInput("");
+    setCategoryInput("Proteins");
+    setTrackingModeInput("status");
+    setFormFeedback({ text: "", type: "" });
+  };
+
   const handleAddIngredient = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormFeedback({ text: "", type: "" });
@@ -100,42 +117,82 @@ export default function PantryPage() {
     const name = nameInput.trim();
     if (!name) return;
 
-    const id = slugify(name);
-    
-    // Check duplicate
-    const duplicate = state.pantryItems.find(
-      (p) => p.id === id || p.name.toLowerCase() === name.toLowerCase()
-    );
+    if (editingItemId) {
+      // Check duplicate (excluding the one being edited)
+      const duplicate = state.pantryItems.find(
+        (p) => p.id !== editingItemId && p.name.toLowerCase() === name.toLowerCase()
+      );
 
-    if (duplicate) {
-      setFormFeedback({ text: `"${name}" is already in your pantry!`, type: "error" });
-      return;
+      if (duplicate) {
+        setFormFeedback({ text: `"${name}" already exists in your pantry!`, type: "error" });
+        return;
+      }
+
+      const updatedItems = state.pantryItems.map((item) => {
+        if (item.id === editingItemId) {
+          const updatedItem: PantryIngredientItem = {
+            ...item,
+            name: name.charAt(0).toUpperCase() + name.slice(1),
+            category: categoryInput,
+            trackingMode: trackingModeInput,
+          };
+          // Re-resolve status based on new tracking mode/count
+          updatedItem.status = resolvePantryItemStatus(updatedItem);
+          return updatedItem;
+        }
+        return item;
+      });
+
+      const newState = {
+        ...state,
+        pantryItems: updatedItems,
+        updatedAt: Date.now(),
+      };
+
+      setState(newState);
+      await pushHouseholdState(syncCode, newState);
+
+      handleCancelEdit();
+      setFormFeedback({ text: `Updated ingredient successfully!`, type: "success" });
+      setTimeout(() => setFormFeedback({ text: "", type: "" }), 2500);
+    } else {
+      const id = slugify(name);
+      
+      // Check duplicate
+      const duplicate = state.pantryItems.find(
+        (p) => p.id === id || p.name.toLowerCase() === name.toLowerCase()
+      );
+
+      if (duplicate) {
+        setFormFeedback({ text: `"${name}" is already in your pantry!`, type: "error" });
+        return;
+      }
+
+      const newItem: PantryIngredientItem = {
+        id,
+        name: name.charAt(0).toUpperCase() + name.slice(1),
+        category: categoryInput,
+        trackingMode: trackingModeInput,
+        stockCount: 0, // defaults to 0
+        status: "OUT", // will be auto-resolved
+      };
+
+      // Auto resolve status
+      newItem.status = resolvePantryItemStatus(newItem);
+
+      const newState = {
+        ...state,
+        pantryItems: [...state.pantryItems, newItem],
+        updatedAt: Date.now(),
+      };
+
+      setState(newState);
+      await pushHouseholdState(syncCode, newState);
+
+      setNameInput("");
+      setFormFeedback({ text: `Added "${newItem.name}" with ${trackingModeInput === "status" ? "Status-Only" : trackingModeInput === "meal" ? "Meal portions" : "Piece count"} tracking.`, type: "success" });
+      setTimeout(() => setFormFeedback({ text: "", type: "" }), 2500);
     }
-
-    const newItem: PantryIngredientItem = {
-      id,
-      name: name.charAt(0).toUpperCase() + name.slice(1),
-      category: categoryInput,
-      trackingMode: trackingModeInput,
-      stockCount: 0, // defaults to 0
-      status: "OUT", // will be auto-resolved
-    };
-
-    // Auto resolve status
-    newItem.status = resolvePantryItemStatus(newItem);
-
-    const newState = {
-      ...state,
-      pantryItems: [...state.pantryItems, newItem],
-      updatedAt: Date.now(),
-    };
-
-    setState(newState);
-    await pushHouseholdState(syncCode, newState);
-
-    setNameInput("");
-    setFormFeedback({ text: `Added "${newItem.name}" with ${trackingModeInput === "status" ? "Status-Only" : trackingModeInput === "meal" ? "Meal portions" : "Piece count"} tracking.`, type: "success" });
-    setTimeout(() => setFormFeedback({ text: "", type: "" }), 2500);
   };
 
   // 4. Action: Update status directly (for Status-Only mode)
@@ -233,8 +290,8 @@ export default function PantryPage() {
       {/* Floating Injector Form */}
       <section className="bg-slate-50 dark:bg-slate-900/50 border border-slate-200/50 dark:border-slate-800 p-5 rounded-3xl space-y-4">
         <div className="flex items-center gap-1.5 text-[10px] uppercase font-black tracking-widest text-slate-400 dark:text-slate-500">
-          <Plus className="w-3.5 h-3.5" />
-          Add Custom Ingredient
+          {editingItemId ? <Edit className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />}
+          {editingItemId ? "Edit Ingredient" : "Add Custom Ingredient"}
         </div>
 
         <form onSubmit={handleAddIngredient} className="space-y-3">
@@ -282,12 +339,23 @@ export default function PantryPage() {
             </div>
           </div>
 
-          <button
-            type="submit"
-            className="w-full mt-2 py-3 rounded-2xl bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-md shadow-orange-500/10 active:scale-95 transition-all cursor-pointer"
-          >
-            Add Ingredient
-          </button>
+          <div className="flex gap-2 mt-2">
+            {editingItemId && (
+              <button
+                type="button"
+                onClick={handleCancelEdit}
+                className="flex-1 py-3 rounded-2xl bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs flex items-center justify-center gap-1.5 active:scale-95 transition-all cursor-pointer"
+              >
+                Cancel
+              </button>
+            )}
+            <button
+              type="submit"
+              className="flex-[2] py-3 rounded-2xl bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-md shadow-orange-500/10 active:scale-95 transition-all cursor-pointer"
+            >
+              {editingItemId ? "Save Changes" : "Add Ingredient"}
+            </button>
+          </div>
         </form>
 
         {formFeedback.text && (
@@ -338,14 +406,23 @@ export default function PantryPage() {
                           </span>
                         </div>
                         
-                        {/* Mobile Delete Button */}
-                        <button
-                          onClick={() => handleRemoveIngredient(item.id)}
-                          className="sm:hidden p-1 text-slate-400 hover:text-red-500 active:scale-90 transition-all cursor-pointer"
-                          title="Delete ingredient"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
+                        {/* Mobile Edit & Delete Buttons */}
+                        <div className="flex items-center gap-1 sm:hidden">
+                          <button
+                            onClick={() => handleStartEdit(item)}
+                            className="p-1 text-slate-400 hover:text-orange-500 active:scale-90 transition-all cursor-pointer"
+                            title="Edit ingredient"
+                          >
+                            <Edit className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            onClick={() => handleRemoveIngredient(item.id)}
+                            className="p-1 text-slate-400 hover:text-red-500 active:scale-90 transition-all cursor-pointer"
+                            title="Delete ingredient"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
                       </div>
 
                       <div className="flex items-center gap-3 justify-end w-full sm:w-auto">
@@ -464,6 +541,15 @@ export default function PantryPage() {
                             </span>
                           </div>
                         )}
+
+                        {/* Desktop Edit Button */}
+                        <button
+                          onClick={() => handleStartEdit(item)}
+                          className="hidden sm:block p-1.5 rounded-xl border border-transparent hover:border-slate-350 dark:hover:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 text-slate-400 hover:text-orange-500 active:scale-95 transition-all cursor-pointer"
+                          title="Edit ingredient"
+                        >
+                          <Edit className="w-3.5 h-3.5" />
+                        </button>
 
                         {/* Desktop Delete Button */}
                         <button

@@ -88,10 +88,68 @@ export default function AddRecipePage() {
       // Pre-fill bot settings from synced state if configured
       if (loadedState.telegramBotToken) setBotToken(loadedState.telegramBotToken);
       if (loadedState.telegramChatId) setChatId(loadedState.telegramChatId);
+
+      // Restore draft BEFORE setting isLoaded to true
+      try {
+        const draftStr = localStorage.getItem(`ulam_recipe_draft_${code}`);
+        if (draftStr) {
+          const draft = JSON.parse(draftStr);
+          if (draft.title) setTitle(draft.title);
+          if (draft.videoUrl) setVideoUrl(draft.videoUrl);
+          if (draft.cookingInstructions) setCookingInstructions(draft.cookingInstructions);
+          if (draft.selectedIngredientIds) setSelectedIngredientIds(draft.selectedIngredientIds);
+          if (draft.recipeAlternatives) setRecipeAlternatives(draft.recipeAlternatives);
+          if (draft.editingRecipeId) setEditingRecipeId(draft.editingRecipeId);
+          if (draft.currentView) setCurrentView(draft.currentView);
+          if (draft.formTab) setFormTab(draft.formTab);
+        }
+      } catch (err) {
+        console.error("Failed to restore recipe draft:", err);
+      }
+
       setIsLoaded(true);
     };
     init();
   }, []);
+
+  // 1b. Save draft when form fields change (after initialization)
+  useEffect(() => {
+    if (!isLoaded || !syncCode) return;
+    
+    // If the view is "list", clear draft
+    if (currentView === "list") {
+      localStorage.removeItem(`ulam_recipe_draft_${syncCode}`);
+      return;
+    }
+
+    const draft = {
+      title,
+      videoUrl,
+      cookingInstructions,
+      selectedIngredientIds,
+      recipeAlternatives,
+      editingRecipeId,
+      currentView,
+      formTab,
+    };
+
+    try {
+      localStorage.setItem(`ulam_recipe_draft_${syncCode}`, JSON.stringify(draft));
+    } catch (err) {
+      console.error("Failed to save recipe draft:", err);
+    }
+  }, [
+    isLoaded,
+    syncCode,
+    title,
+    videoUrl,
+    cookingInstructions,
+    selectedIngredientIds,
+    recipeAlternatives,
+    editingRecipeId,
+    currentView,
+    formTab,
+  ]);
 
   // 2. Polling for updates
   useEffect(() => {
