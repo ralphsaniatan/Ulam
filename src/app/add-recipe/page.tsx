@@ -914,18 +914,27 @@ export default function AddRecipePage() {
                                 key={item.id}
                                 onClick={() => handleToggleIngredient(item.id)}
                                 className={cn(
-                                  "w-full flex items-center justify-between px-3 py-2 rounded-xl text-left text-xs font-semibold transition-all cursor-pointer",
+                                  "w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-left text-xs font-bold transition-all cursor-pointer border border-transparent",
                                   isSelected
-                                    ? "bg-orange-500/10 text-orange-600 dark:text-orange-400"
-                                    : "hover:bg-slate-50 dark:hover:bg-slate-800/50 text-slate-600 dark:text-slate-350"
+                                    ? "bg-orange-500/15 dark:bg-orange-500/20 border-orange-500/30 text-orange-500 dark:text-orange-400"
+                                    : "hover:bg-slate-50 dark:hover:bg-slate-800/50 text-slate-700 dark:text-slate-200"
                                 )}
                               >
-                                <span>{item.name}</span>
+                                <span className={cn(
+                                  isSelected ? "text-orange-500 dark:text-orange-400 font-black" : "text-slate-700 dark:text-slate-200"
+                                )}>
+                                  {item.name}
+                                </span>
                                 <div className="flex items-center gap-2">
-                                  <span className="text-[9px] opacity-60 font-semibold uppercase tracking-wider">
+                                  {isSelected && (
+                                    <span className="text-[8px] bg-orange-500 text-white font-extrabold px-1.5 py-0.5 rounded-lg uppercase tracking-wider shrink-0 animate-pulse">
+                                      Selected
+                                    </span>
+                                  )}
+                                  <span className="text-[9px] opacity-60 font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
                                     {item.category.replace("Pantry Staples", "Staple").replace("Proteins", "Protein").replace("Produce", "Produce")}
                                   </span>
-                                  {isSelected && <Check className="w-3 h-3 text-orange-500 stroke-[3] shrink-0" />}
+                                  {isSelected && <Check className="w-3.5 h-3.5 text-orange-500 dark:text-orange-400 stroke-[3] shrink-0" />}
                                 </div>
                               </button>
                             );
